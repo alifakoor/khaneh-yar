@@ -17,3 +17,26 @@ npm run dev
 npm test
 npm run build
 ```
+
+## اجرا با Docker
+
+برای حالت نمایشی بدون Supabase:
+
+```bash
+docker build -t khanehyar .
+docker run --rm -p 3000:3000 khanehyar
+```
+
+برای اتصال به Supabase، متغیرهای عمومی هنگام build داخل bundle مرورگر قرار می‌گیرند و ایمیل مجاز هنگام اجرا تعیین می‌شود:
+
+```bash
+docker build -t khanehyar \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_ANON_KEY" .
+
+docker run --rm -p 3000:3000 \
+  -e ALLOWED_EMAIL="you@example.com" \
+  khanehyar
+```
+
+پس از اجرا، برنامه روی `http://localhost:3000` در دسترس است.
