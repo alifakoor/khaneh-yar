@@ -1,0 +1,4 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#f5f2e9;color:#17211c}.leaflet-container{height:260px;border-radius:20px;z-index:0}input,select,textarea{outline:none}input:focus,select:focus,textarea:focus{border-color:#315c48;box-shadow:0 0 0 3px rgba(49,92,72,.1)}
+@layer components{.card{@apply rounded-3xl border border-black/5 bg-white shadow-soft}.btn{@apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition active:scale-[.98]}.btn-primary{@apply btn bg-moss text-white hover:bg-ink}.btn-ghost{@apply btn bg-sage/70 text-moss hover:bg-sage}.field{@apply w-full rounded-2xl border border-black/10 bg-white px-4 py-3}.label{@apply mb-2 block text-sm font-bold text-ink/70}.chip{@apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold}}
+@media print{nav,.no-print{display:none!important}body{background:white}.card{box-shadow:none}}

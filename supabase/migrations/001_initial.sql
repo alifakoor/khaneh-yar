@@ -1,0 +1,13 @@
+create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, email text not null, created_at timestamptz not null default now());
+create table public.properties (id text primary key, user_id uuid not null references auth.users(id) on delete cascade, payload jsonb not null, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table public.user_settings (user_id uuid primary key references auth.users(id) on delete cascade, payload jsonb not null, updated_at timestamptz not null default now());
+create table public.neighborhoods (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, name text not null, rating text check (rating in ('poor','average','good')), unique(user_id,name));
+create table public.visit_notes (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, property_id text not null references public.properties(id) on delete cascade, checklist jsonb not null default '[]', notes text, follow_ups text, created_at timestamptz not null default now());
+alter table public.profiles enable row level security;alter table public.properties enable row level security;alter table public.user_settings enable row level security;alter table public.neighborhoods enable row level security;alter table public.visit_notes enable row level security;
+create policy "own profile" on public.profiles for all using (auth.uid()=id) with check (auth.uid()=id);
+create policy "own properties" on public.properties for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own settings" on public.user_settings for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own neighborhoods" on public.neighborhoods for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create policy "own notes" on public.visit_notes for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$begin insert into public.profiles(id,email) values(new.id,new.email);return new;end;$$;
+create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
