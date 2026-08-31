@@ -8,7 +8,7 @@ export interface Property {
   id: string; title: string; type: PropertyType; status: PropertyStatus; neighborhood: string; address?: string; listingUrl?: string;
   latitude?: number; longitude?: number; area?: number; rooms?: number; age?: number; floor?: number; floors?: number; units?: number;
   elevator?: boolean; parking?: boolean; storage?: boolean; charge?: number; landArea?: number; buildingArea?: number; yard?: boolean;
-  costs: Costs; ratings: Ratings; notes?: string; followUps?: string; checklist: string[]; rejectionReason?: string; createdAt: string;
+  costs: Costs; ratings: Ratings; notes?: string; followUps?: string; checklist: string[]; rejectionReason?: string; createdAt: string; version?: number;
 }
 export type CriterionKey = "neighborhood"|"area"|"age"|"rooms"|"floor"|"elevator"|"parking"|"storage"|keyof Ratings;
 export interface CriterionSetting { key: CriterionKey; label: string; weight: number; active: boolean; target?: number; hardMin?: number; required?: boolean }

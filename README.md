@@ -1,42 +1,36 @@
 # خانه‌یار مشهد
 
-وب‌اپ شخصی فارسی برای ثبت، امتیازدهی و مقایسه گزینه‌های خرید خانه.
+وب‌اپ شخصی فارسی برای ثبت، امتیازدهی و مقایسه گزینه‌های خرید خانه. داده‌ها در MongoDB ذخیره می‌شوند و تمام صفحات با حساب خصوصی محافظت شده‌اند.
 
-## اجرا
+## اجرای توسعه
+
+فایل `.env.example` را به `.env.local` کپی کنید و همه رمزها را تغییر دهید. `ADMIN_PASSWORD` باید حداقل ۱۲ نویسه و `SESSION_SECRET` حداقل ۳۲ نویسه تصادفی باشد. سپس یک MongoDB در دسترس قرار دهید و اجرا کنید:
 
 ```bash
 npm install
 npm run dev
 ```
 
-بدون متغیر محیطی، برنامه در حالت نمایشی با داده نمونه و `localStorage` اجرا می‌شود. برای استفاده آنلاین، یک پروژه Supabase بسازید، فایل `supabase/migrations/001_initial.sql` را در SQL Editor اجرا کنید، کاربر شخصی را در Authentication ایجاد کنید و مقادیر `.env.example` را در `.env.local` و Vercel قرار دهید. مقدار `ALLOWED_EMAIL` باید دقیقاً ایمیل همان کاربر باشد. ثبت‌نام عمومی را در تنظیمات Supabase خاموش نگه دارید.
+در اولین درخواست، اگر مجموعه کاربران خالی باشد، حساب مدیر، تنظیمات پیش‌فرض و دو ملک نمایشی ایجاد می‌شوند. در اجراهای بعدی تغییر متغیرهای `ADMIN_*` حساب یا داده‌های موجود را بازنویسی نمی‌کند؛ برای تغییر رمز از بخش تنظیمات سایت استفاده کنید.
+
+## استقرار با Docker Compose
+
+```bash
+cp .env.example .env
+# مقادیر .env را با رمزهای قوی و یکتا جایگزین کنید
+docker compose up -d --build
+```
+
+سایت روی پورت `3000` ارائه می‌شود. MongoDB به host publish نمی‌شود و اطلاعات آن در volume پایدار `mongo-data` باقی می‌ماند. HTTPS را در reverse proxy سرور فعال کنید؛ کوکی نشست در production فقط روی HTTPS ارسال می‌شود.
+
+برای تغییر `SESSION_SECRET` همه نشست‌ها باطل می‌شوند. برای تغییر رمز MongoDB پس از ساخته‌شدن volume، صرفاً تغییر `.env` کافی نیست و باید اعتبار کاربر داخل MongoDB نیز هماهنگ شود.
 
 ## کنترل کیفیت
 
 ```bash
 npm test
+npm run lint
 npm run build
 ```
 
-## اجرا با Docker
-
-برای حالت نمایشی بدون Supabase:
-
-```bash
-docker build -t khanehyar .
-docker run --rm -p 3000:3000 khanehyar
-```
-
-برای اتصال به Supabase، متغیرهای عمومی هنگام build داخل bundle مرورگر قرار می‌گیرند و ایمیل مجاز هنگام اجرا تعیین می‌شود:
-
-```bash
-docker build -t khanehyar \
-  --build-arg NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT.supabase.co" \
-  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_ANON_KEY" .
-
-docker run --rm -p 3000:3000 \
-  -e ALLOWED_EMAIL="you@example.com" \
-  khanehyar
-```
-
-پس از اجرا، برنامه روی `http://localhost:3000` در دسترس است.
+بکاپ خودکار در این نسخه تنظیم نشده است؛ پیش از استفاده از داده واقعی برای volume MongoDB سیاست بکاپ جداگانه تعریف کنید.
