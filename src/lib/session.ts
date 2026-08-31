@@ -1,4 +1,5 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
 
 export const SESSION_COOKIE = "khanehyar-session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
