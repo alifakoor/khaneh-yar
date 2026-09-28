@@ -1,3 +1,165 @@
-"use client";import { useState } from "react";import { Check,Plus,Trash2 } from "lucide-react";import { Rating,Settings } from "@/lib/types";import { ratingLabels } from "@/lib/format";
-export function SettingsPanel({value,onSave}:{value:Settings;onSave:(s:Settings)=>void}){const [s,setS]=useState(value);const updateCriterion=(i:number,k:string,v:number|boolean|undefined)=>setS(x=>({...x,criteria:x.criteria.map((c,j)=>j===i?{...c,[k]:v}:c)}));const [newHood,setNewHood]=useState("");return <div><header className="mb-7"><h1 className="text-3xl font-black">تنظیمات تصمیم‌گیری</h1><p className="text-sm text-ink/45">فرمول را با اولویت‌های خودت هماهنگ کن</p></header><section className="card mb-5 p-5"><h2 className="mb-5 text-lg font-black">بودجه و ترکیب رتبه</h2><div className="grid gap-4 sm:grid-cols-2"><Num label="بودجه هدف (تومان)" value={s.targetBudget} set={v=>setS({...s,targetBudget:v})}/><Num label="سقف قطعی (تومان)" value={s.maxBudget} set={v=>setS({...s,maxBudget:v})}/><Num label="وزن تناسب" value={s.fitWeight} set={v=>setS({...s,fitWeight:v,valueWeight:100-v})}/><div><span className="label">وزن ارزش خرید</span><div className="field bg-cream text-ink/50">{s.valueWeight}٪ (تکمیل خودکار)</div></div></div></section><section className="card mb-5 overflow-hidden"><div className="p-5"><h2 className="text-lg font-black">معیارها</h2><p className="text-sm text-ink/45">وزن، هدف و حد رد هر معیار</p></div><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-right text-sm"><thead className="bg-cream text-ink/50"><tr><th className="p-3">فعال</th><th>معیار</th><th>وزن</th><th>مقدار هدف</th><th>حداقل امتیاز قطعی</th><th>الزامی</th></tr></thead><tbody>{s.criteria.map((c,i)=><tr className="border-t border-black/5" key={c.key}><td className="p-3"><input type="checkbox" checked={c.active} onChange={e=>updateCriterion(i,"active",e.target.checked)} className="h-5 w-5 accent-moss"/></td><td className="font-bold">{c.label}</td><td><input className="w-20 rounded-xl border p-2" type="number" value={c.weight} onChange={e=>updateCriterion(i,"weight",Number(e.target.value))}/></td><td><input className="w-24 rounded-xl border p-2" type="number" value={c.target??""} onChange={e=>updateCriterion(i,"target",e.target.value?Number(e.target.value):undefined)}/></td><td><input className="w-24 rounded-xl border p-2" type="number" value={c.hardMin??""} onChange={e=>updateCriterion(i,"hardMin",e.target.value?Number(e.target.value):undefined)}/></td><td><input type="checkbox" checked={!!c.required} onChange={e=>updateCriterion(i,"required",e.target.checked)} className="h-5 w-5 accent-moss"/></td></tr>)}</tbody></table></div></section><section className="card mb-5 p-5"><h2 className="mb-4 text-lg font-black">ترجیح محله‌ها</h2><div className="space-y-3">{Object.entries(s.neighborhoods).map(([name,r])=><div key={name} className="flex items-center gap-3"><b className="flex-1">{name}</b><select className="field max-w-36" value={r} onChange={e=>setS({...s,neighborhoods:{...s.neighborhoods,[name]:e.target.value as Rating}})}>{Object.entries(ratingLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><button className="btn-ghost p-3 text-coral" onClick={()=>{const n={...s.neighborhoods};delete n[name];setS({...s,neighborhoods:n})}}><Trash2 size={17}/></button></div>)}</div><div className="mt-4 flex gap-2"><input className="field" placeholder="نام محله جدید" value={newHood} onChange={e=>setNewHood(e.target.value)}/><button className="btn-ghost" onClick={()=>{if(newHood){setS({...s,neighborhoods:{...s.neighborhoods,[newHood]:"average"}});setNewHood("")}}}><Plus/> افزودن</button></div></section><button className="btn-primary w-full" onClick={()=>onSave(s)}><Check/> ذخیره و بازمحاسبه رتبه‌ها</button></div>}
-function Num({label,value,set}:{label:string;value:number;set:(n:number)=>void}){return <label><span className="label">{label}</span><input className="field" type="number" min="0" value={value} onChange={e=>set(Number(e.target.value))}/></label>}
+"use client";
+import { useState } from "react";
+import { Check, Plus, Trash2 } from "lucide-react";
+import { Rating, Settings } from "@/lib/types";
+import { ratingLabels } from "@/lib/format";
+export function SettingsPanel({ value, onSave }: { value: Settings; onSave: (s: Settings) => void }) {
+  const [s, setS] = useState(value);
+  const updateCriterion = (i: number, k: string, v: number | boolean | undefined) =>
+    setS((x) => ({ ...x, criteria: x.criteria.map((c, j) => (j === i ? { ...c, [k]: v } : c)) }));
+  const [newHood, setNewHood] = useState("");
+  return (
+    <div>
+      <header className="mb-7">
+        <h1 className="text-3xl font-black">تنظیمات تصمیم‌گیری</h1>
+        <p className="text-sm text-ink/45">فرمول را با اولویت‌های خودت هماهنگ کن</p>
+      </header>
+      <section className="card mb-5 p-5">
+        <h2 className="mb-5 text-lg font-black">بودجه و ترکیب رتبه</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Num label="بودجه هدف (تومان)" value={s.targetBudget} set={(v) => setS({ ...s, targetBudget: v })} />
+          <Num label="سقف قطعی (تومان)" value={s.maxBudget} set={(v) => setS({ ...s, maxBudget: v })} />
+          <Num label="وزن تناسب" value={s.fitWeight} set={(v) => setS({ ...s, fitWeight: v, valueWeight: 100 - v })} />
+          <div>
+            <span className="label">وزن ارزش خرید</span>
+            <div className="field bg-cream text-ink/50">{s.valueWeight}٪ (تکمیل خودکار)</div>
+          </div>
+        </div>
+      </section>
+      <section className="card mb-5 overflow-hidden">
+        <div className="p-5">
+          <h2 className="text-lg font-black">معیارها</h2>
+          <p className="text-sm text-ink/45">وزن، هدف و حد رد هر معیار</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] text-right text-sm">
+            <thead className="bg-cream text-ink/50">
+              <tr>
+                <th className="p-3">فعال</th>
+                <th>معیار</th>
+                <th>وزن</th>
+                <th>مقدار هدف</th>
+                <th>حداقل امتیاز قطعی</th>
+                <th>الزامی</th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.criteria.map((c, i) => (
+                <tr className="border-t border-black/5" key={c.key}>
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={c.active}
+                      onChange={(e) => updateCriterion(i, "active", e.target.checked)}
+                      className="h-5 w-5 accent-moss"
+                    />
+                  </td>
+                  <td className="font-bold">{c.label}</td>
+                  <td>
+                    <input
+                      className="w-20 rounded-xl border p-2"
+                      type="number"
+                      value={c.weight}
+                      onChange={(e) => updateCriterion(i, "weight", Number(e.target.value))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="w-24 rounded-xl border p-2"
+                      type="number"
+                      value={c.target ?? ""}
+                      onChange={(e) =>
+                        updateCriterion(i, "target", e.target.value ? Number(e.target.value) : undefined)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="w-24 rounded-xl border p-2"
+                      type="number"
+                      value={c.hardMin ?? ""}
+                      onChange={(e) =>
+                        updateCriterion(i, "hardMin", e.target.value ? Number(e.target.value) : undefined)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!!c.required}
+                      onChange={(e) => updateCriterion(i, "required", e.target.checked)}
+                      className="h-5 w-5 accent-moss"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="card mb-5 p-5">
+        <h2 className="mb-4 text-lg font-black">ترجیح محله‌ها</h2>
+        <div className="space-y-3">
+          {Object.entries(s.neighborhoods).map(([name, r]) => (
+            <div key={name} className="flex items-center gap-3">
+              <b className="flex-1">{name}</b>
+              <select
+                className="field max-w-36"
+                value={r}
+                onChange={(e) =>
+                  setS({ ...s, neighborhoods: { ...s.neighborhoods, [name]: e.target.value as Rating } })
+                }
+              >
+                {Object.entries(ratingLabels).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="btn-ghost p-3 text-coral"
+                onClick={() => {
+                  const n = { ...s.neighborhoods };
+                  delete n[name];
+                  setS({ ...s, neighborhoods: n });
+                }}
+              >
+                <Trash2 size={17} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <input
+            className="field"
+            placeholder="نام محله جدید"
+            value={newHood}
+            onChange={(e) => setNewHood(e.target.value)}
+          />
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              if (newHood) {
+                setS({ ...s, neighborhoods: { ...s.neighborhoods, [newHood]: "average" } });
+                setNewHood("");
+              }
+            }}
+          >
+            <Plus /> افزودن
+          </button>
+        </div>
+      </section>
+      <button className="btn-primary w-full" onClick={() => onSave(s)}>
+        <Check /> ذخیره و بازمحاسبه رتبه‌ها
+      </button>
+    </div>
+  );
+}
+function Num({ label, value, set }: { label: string; value: number; set: (n: number) => void }) {
+  return (
+    <label>
+      <span className="label">{label}</span>
+      <input className="field" type="number" min="0" value={value} onChange={(e) => set(Number(e.target.value))} />
+    </label>
+  );
+}

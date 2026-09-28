@@ -1,9 +1,82 @@
 "use client";
-import { useCallback,useEffect,useState } from "react";import { Property,Settings } from "./types";
-type VersionedSettings=Settings&{version:number};
-async function api<T>(url:string,init?:RequestInit):Promise<T>{const response=await fetch(url,{...init,headers:init?.body?{"content-type":"application/json",...init.headers}:init?.headers});const body=await response.json().catch(()=>null);if(response.status===401){location.href="/login";throw new Error("نشست شما پایان یافته است.")}if(!response.ok)throw new Error(body?.error?.message||"عملیات انجام نشد.");return body as T}
-export function useHouseStore(){const [properties,setProperties]=useState<Property[]>([]);const [settings,setSettingsState]=useState<VersionedSettings>();const [ready,setReady]=useState(false);const [error,setError]=useState("");const reload=useCallback(async()=>{setError("");try{const [items,cfg]=await Promise.all([api<Property[]>("/api/properties"),api<VersionedSettings>("/api/settings")]);setProperties(items);setSettingsState(cfg)}catch(e){setError(e instanceof Error?e.message:"دریافت داده‌ها ناموفق بود.")}finally{setReady(true)}},[]);useEffect(()=>{void reload()},[reload]);
-const save=async(p:Property)=>{setError("");const editing=typeof p.version==="number";try{const saved=await api<Property>(editing?`/api/properties/${encodeURIComponent(p.id)}`:"/api/properties",{method:editing?"PUT":"POST",body:JSON.stringify(p)});setProperties(x=>editing?x.map(v=>v.id===saved.id?saved:v):[saved,...x]);return saved}catch(e){setError(e instanceof Error?e.message:"ذخیره انجام نشد.");throw e}};
-const remove=async(p:Property)=>{setError("");try{await api(`/api/properties/${encodeURIComponent(p.id)}?version=${p.version}`,{method:"DELETE"});setProperties(x=>x.filter(v=>v.id!==p.id))}catch(e){setError(e instanceof Error?e.message:"حذف انجام نشد.");throw e}};
-const saveSettings=async(value:Settings)=>{if(!settings)throw new Error("تنظیمات هنوز بارگیری نشده است.");setError("");try{const saved=await api<VersionedSettings>("/api/settings",{method:"PUT",body:JSON.stringify({...value,version:settings.version})});setSettingsState(saved);return saved}catch(e){setError(e instanceof Error?e.message:"ذخیره تنظیمات انجام نشد.");throw e}};
-return{properties,settings:settings as Settings|undefined,saveSettings,save,remove,ready,error,reload}}
+import { useCallback, useEffect, useState } from "react";
+import { Property, Settings } from "./types";
+type VersionedSettings = Settings & { version: number };
+async function api<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: init?.body ? { "content-type": "application/json", ...init.headers } : init?.headers,
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) {
+    location.href = "/login";
+    throw new Error("نشست شما پایان یافته است.");
+  }
+  if (!response.ok) throw new Error(body?.error?.message || "عملیات انجام نشد.");
+  return body as T;
+}
+export function useHouseStore() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [settings, setSettingsState] = useState<VersionedSettings>();
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+  const reload = useCallback(async () => {
+    setError("");
+    try {
+      const [items, cfg] = await Promise.all([
+        api<Property[]>("/api/properties"),
+        api<VersionedSettings>("/api/settings"),
+      ]);
+      setProperties(items);
+      setSettingsState(cfg);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "دریافت داده‌ها ناموفق بود.");
+    } finally {
+      setReady(true);
+    }
+  }, []);
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  const save = async (p: Property) => {
+    setError("");
+    const editing = typeof p.version === "number";
+    try {
+      const saved = await api<Property>(editing ? `/api/properties/${encodeURIComponent(p.id)}` : "/api/properties", {
+        method: editing ? "PUT" : "POST",
+        body: JSON.stringify(p),
+      });
+      setProperties((x) => (editing ? x.map((v) => (v.id === saved.id ? saved : v)) : [saved, ...x]));
+      return saved;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ذخیره انجام نشد.");
+      throw e;
+    }
+  };
+  const remove = async (p: Property) => {
+    setError("");
+    try {
+      await api(`/api/properties/${encodeURIComponent(p.id)}?version=${p.version}`, { method: "DELETE" });
+      setProperties((x) => x.filter((v) => v.id !== p.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "حذف انجام نشد.");
+      throw e;
+    }
+  };
+  const saveSettings = async (value: Settings) => {
+    if (!settings) throw new Error("تنظیمات هنوز بارگیری نشده است.");
+    setError("");
+    try {
+      const saved = await api<VersionedSettings>("/api/settings", {
+        method: "PUT",
+        body: JSON.stringify({ ...value, version: settings.version }),
+      });
+      setSettingsState(saved);
+      return saved;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ذخیره تنظیمات انجام نشد.");
+      throw e;
+    }
+  };
+  return { properties, settings: settings as Settings | undefined, saveSettings, save, remove, ready, error, reload };
+}

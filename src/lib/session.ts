@@ -4,7 +4,11 @@ import { jwtVerify } from "jose/jwt/verify";
 export const SESSION_COOKIE = "khanehyar-session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
-export interface SessionPayload { userId: string; username: string; tokenVersion: number }
+export interface SessionPayload {
+  userId: string;
+  username: string;
+  tokenVersion: number;
+}
 
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -27,5 +31,7 @@ export async function verifySessionToken(token?: string): Promise<SessionPayload
     const { payload } = await jwtVerify(token, secret());
     if (!payload.sub || typeof payload.username !== "string" || typeof payload.tokenVersion !== "number") return null;
     return { userId: payload.sub, username: payload.username, tokenVersion: payload.tokenVersion };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }

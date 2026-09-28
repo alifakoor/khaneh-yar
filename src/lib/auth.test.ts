@@ -1,3 +1,47 @@
-import { afterAll,beforeAll,describe,expect,it } from "vitest";import { decodeJwt } from "jose/jwt/decode";import { SignJWT } from "jose/jwt/sign";import { createSessionToken,SESSION_MAX_AGE,verifySessionToken } from "./session";import { hashPassword,verifyPassword } from "./password";import { changePasswordSchema,propertySchema,settingsSchema } from "./validation";import { defaultSettings,demoProperties } from "./defaults";
-describe("authentication",()=>{const previous=process.env.SESSION_SECRET;beforeAll(()=>{process.env.SESSION_SECRET="test-secret-with-at-least-thirty-two-characters"});afterAll(()=>{process.env.SESSION_SECRET=previous});it("hashes and verifies passwords",async()=>{const hash=await hashPassword("a-strong-password");expect(hash).not.toContain("a-strong-password");expect(await verifyPassword("a-strong-password",hash)).toBe(true);expect(await verifyPassword("wrong-password",hash)).toBe(false)});it("creates a 30-day signed session",async()=>{const token=await createSessionToken({userId:"abc",username:"admin",tokenVersion:2});const payload=decodeJwt(token);expect(payload.exp!-payload.iat!).toBe(SESSION_MAX_AGE);expect(await verifySessionToken(token)).toEqual({userId:"abc",username:"admin",tokenVersion:2})});it("rejects expired sessions",async()=>{const secret=new TextEncoder().encode(process.env.SESSION_SECRET);const expired=await new SignJWT({username:"admin",tokenVersion:0}).setProtectedHeader({alg:"HS256"}).setSubject("abc").setExpirationTime("1 second ago").sign(secret);expect(await verifySessionToken(expired)).toBeNull()})});
-describe("API input validation",()=>{it("accepts current seeded documents",()=>{expect(propertySchema.safeParse(demoProperties[0]).success).toBe(true);expect(settingsSchema.safeParse(defaultSettings).success).toBe(true)});it("rejects unknown property fields and weak new passwords",()=>{expect(propertySchema.safeParse({...demoProperties[0],unexpected:true}).success).toBe(false);expect(changePasswordSchema.safeParse({currentPassword:"old",newPassword:"short"}).success).toBe(false)})});
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { decodeJwt } from "jose/jwt/decode";
+import { SignJWT } from "jose/jwt/sign";
+import { createSessionToken, SESSION_MAX_AGE, verifySessionToken } from "./session";
+import { hashPassword, verifyPassword } from "./password";
+import { changePasswordSchema, propertySchema, settingsSchema } from "./validation";
+import { defaultSettings, demoProperties } from "./defaults";
+describe("authentication", () => {
+  const previous = process.env.SESSION_SECRET;
+  beforeAll(() => {
+    process.env.SESSION_SECRET = "test-secret-with-at-least-thirty-two-characters";
+  });
+  afterAll(() => {
+    process.env.SESSION_SECRET = previous;
+  });
+  it("hashes and verifies passwords", async () => {
+    const hash = await hashPassword("a-strong-password");
+    expect(hash).not.toContain("a-strong-password");
+    expect(await verifyPassword("a-strong-password", hash)).toBe(true);
+    expect(await verifyPassword("wrong-password", hash)).toBe(false);
+  });
+  it("creates a 30-day signed session", async () => {
+    const token = await createSessionToken({ userId: "abc", username: "admin", tokenVersion: 2 });
+    const payload = decodeJwt(token);
+    expect(payload.exp! - payload.iat!).toBe(SESSION_MAX_AGE);
+    expect(await verifySessionToken(token)).toEqual({ userId: "abc", username: "admin", tokenVersion: 2 });
+  });
+  it("rejects expired sessions", async () => {
+    const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
+    const expired = await new SignJWT({ username: "admin", tokenVersion: 0 })
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject("abc")
+      .setExpirationTime("1 second ago")
+      .sign(secret);
+    expect(await verifySessionToken(expired)).toBeNull();
+  });
+});
+describe("API input validation", () => {
+  it("accepts current seeded documents", () => {
+    expect(propertySchema.safeParse(demoProperties[0]).success).toBe(true);
+    expect(settingsSchema.safeParse(defaultSettings).success).toBe(true);
+  });
+  it("rejects unknown property fields and weak new passwords", () => {
+    expect(propertySchema.safeParse({ ...demoProperties[0], unexpected: true }).success).toBe(false);
+    expect(changePasswordSchema.safeParse({ currentPassword: "old", newPassword: "short" }).success).toBe(false);
+  });
+});

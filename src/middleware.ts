@@ -1,4 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
-export async function middleware(request:NextRequest){const path=request.nextUrl.pathname;const publicPath=path==="/login"||path==="/api/auth/login";const session=await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);if(!session&&!publicPath){if(path.startsWith("/api/"))return NextResponse.json({error:{code:"UNAUTHORIZED",message:"نشست شما معتبر نیست."}},{status:401});const url=request.nextUrl.clone();url.pathname="/login";return NextResponse.redirect(url)}if(session&&path==="/login"){const url=request.nextUrl.clone();url.pathname="/";return NextResponse.redirect(url)}return NextResponse.next()}
-export const config={matcher:["/((?!_next/static|_next/image|favicon.ico).*)"]};
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const publicPath = path === "/login" || path === "/api/auth/login";
+  const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!session && !publicPath) {
+    if (path.startsWith("/api/"))
+      return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "نشست شما معتبر نیست." } }, { status: 401 });
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+  if (session && path === "/login") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+  return NextResponse.next();
+}
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
