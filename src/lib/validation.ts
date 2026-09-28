@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { isHttpUrl } from "./format";
+import { normalizePhone, toLatinDigits } from "./phone";
+
+export const MAX_NEIGHBORHOODS = 200;
+export const MAX_PROPERTIES_PER_USER = 500;
 
 const rating = z.enum(["poor", "average", "good"]);
 const optionalNumber = z.number().finite().nonnegative().optional();
@@ -11,7 +16,11 @@ export const propertySchema = z
     status: z.enum(["saved", "visited", "finalist", "rejected"]),
     neighborhood: z.string().trim().min(1).max(100),
     address: z.string().max(500).optional(),
-    listingUrl: z.string().url().max(2000).optional().or(z.literal("")),
+    listingUrl: z
+      .string()
+      .max(2000)
+      .refine((v) => v === "" || isHttpUrl(v), "لینک باید با http یا https شروع شود")
+      .optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     area: optionalNumber,
@@ -89,14 +98,34 @@ export const settingsSchema = z
           .strict(),
       )
       .max(100),
-    neighborhoods: z.record(z.string().min(1).max(100), rating),
+    neighborhoods: z
+      .record(z.string().min(1).max(100), rating)
+      .refine((v) => Object.keys(v).length <= MAX_NEIGHBORHOODS, "تعداد محله‌ها بیش از حد مجاز است"),
   })
   .strict()
   .refine((v) => Math.abs(v.fitWeight + v.valueWeight - 100) < 0.001, "مجموع وزن‌ها باید ۱۰۰ باشد");
 
-export const loginSchema = z
-  .object({ username: z.string().trim().min(1).max(100), password: z.string().min(1).max(1000) })
+const phone = z
+  .string()
+  .max(30)
+  .transform((value, ctx) => {
+    const normalized = normalizePhone(value);
+    if (!normalized) {
+      ctx.addIssue({ code: "custom", message: "شماره موبایل معتبر نیست." });
+      return z.NEVER;
+    }
+    return normalized;
+  });
+
+export const otpRequestSchema = z.object({ phone }).strict();
+export const otpVerifySchema = z
+  .object({
+    phone,
+    code: z
+      .string()
+      .max(20)
+      .transform((v) => toLatinDigits(v).trim())
+      .pipe(z.string().regex(/^\d{5}$/)),
+  })
   .strict();
-export const changePasswordSchema = z
-  .object({ currentPassword: z.string().min(1).max(1000), newPassword: z.string().min(12).max(1000) })
-  .strict();
+export const deleteAccountSchema = z.object({ phone }).strict();

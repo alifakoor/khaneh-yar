@@ -5,23 +5,16 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGODB_DB: ${MONGODB_DB:-khanehyar}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
     volumes:
       - mongo-data:/data/db
+      # Runs only when the volume is created for the first time (creates the least-privilege app user).
+      - ./deploy/mongo-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mongosh",
-          "--quiet",
-          "--username",
-          "${MONGO_ROOT_USERNAME}",
-          "--password",
-          "${MONGO_ROOT_PASSWORD}",
-          "--authenticationDatabase",
-          "admin",
-          "--eval",
-          "db.adminCommand('ping').ok",
-        ]
+      # ping does not require authentication, so no password appears in the process list.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -32,12 +25,16 @@ services:
       mongo:
         condition: service_healthy
     environment:
-      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongo:27017/?authSource=${MONGODB_DB:-khanehyar}
       MONGODB_DB: ${MONGODB_DB:-khanehyar}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       SESSION_SECRET: ${SESSION_SECRET}
+      APP_ORIGIN: ${APP_ORIGIN}
+      SMS_PROVIDER: ${SMS_PROVIDER:-smsir}
+      SMSIR_API_KEY: ${SMSIR_API_KEY}
+      SMSIR_TEMPLATE_ID: ${SMSIR_TEMPLATE_ID:-306964}
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-x-real-ip}
     ports:
-      - "3000:3000"
+      # Local/self-hosted use only; on Darkube the platform ingress fronts the app.
+      - "127.0.0.1:3000:3000"
 volumes:
   mongo-data:

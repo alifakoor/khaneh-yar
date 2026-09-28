@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkOrigin, errorResponse, requireUser } from "@/lib/api";
+import { checkOrigin, errorResponse, readJson, requireUser, unauthorized } from "@/lib/api";
 import { propertySchema } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
@@ -8,10 +8,12 @@ export async function PUT(request: NextRequest, { params }: Context) {
   const originError = checkOrigin(request);
   if (originError) return originError;
   const auth = await requireUser();
-  if (!auth) return errorResponse(401, "UNAUTHORIZED", "نشست شما معتبر نیست.");
+  if (!auth) return unauthorized();
   const { id } = await params;
-  const body = await request.json().catch(() => null);
-  const version = body?.version;
+  const json = await readJson(request);
+  if ("error" in json) return json.error;
+  const body = json.body as Record<string, unknown> | null;
+  const version = body?.version as number;
   const parsed = propertySchema.safeParse(
     body && typeof body === "object"
       ? Object.fromEntries(Object.entries(body).filter(([key]) => key !== "version"))
@@ -39,7 +41,7 @@ export async function DELETE(request: NextRequest, { params }: Context) {
   const originError = checkOrigin(request);
   if (originError) return originError;
   const auth = await requireUser();
-  if (!auth) return errorResponse(401, "UNAUTHORIZED", "نشست شما معتبر نیست.");
+  if (!auth) return unauthorized();
   const { id } = await params;
   const version = Number(request.nextUrl.searchParams.get("version"));
   if (!Number.isInteger(version) || version < 1) return errorResponse(400, "VALIDATION_ERROR", "نسخه معتبر نیست.");

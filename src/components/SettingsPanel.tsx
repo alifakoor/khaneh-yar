@@ -39,7 +39,9 @@ export function SettingsPanel({ value, onSave }: { value: Settings; onSave: (s: 
                 <th>معیار</th>
                 <th>وزن</th>
                 <th>مقدار هدف</th>
-                <th>حداقل امتیاز قطعی</th>
+                <th title="برای متراژ، اتاق، طبقه و سن: مقدار واقعی (مثلاً متر مربع)؛ برای بقیه: امتیاز ۰ تا ۱۰۰">
+                  حداقل قطعی
+                </th>
                 <th>الزامی</th>
               </tr>
             </thead>

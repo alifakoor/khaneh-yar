@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const publicPath = path === "/login" || path === "/api/auth/login";
+  const publicPath = path === "/login" || path === "/api/health" || path.startsWith("/api/auth/otp/");
   const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
   if (!session && !publicPath) {
     if (path.startsWith("/api/"))

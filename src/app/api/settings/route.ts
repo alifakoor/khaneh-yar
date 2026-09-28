@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkOrigin, errorResponse, requireUser } from "@/lib/api";
+import { checkOrigin, errorResponse, readJson, requireUser, unauthorized } from "@/lib/api";
+import { ensureSettings } from "@/lib/db";
 import { settingsSchema } from "@/lib/validation";
 
 export async function GET() {
   const auth = await requireUser();
-  if (!auth) return errorResponse(401, "UNAUTHORIZED", "نشست شما معتبر نیست.");
-  const doc = await auth.db.collection("settings").findOne({ ownerId: auth.user._id });
-  if (!doc) return errorResponse(404, "NOT_FOUND", "تنظیمات پیدا نشد.");
+  if (!auth) return unauthorized();
+  let doc = await auth.db.collection("settings").findOne({ ownerId: auth.user._id });
+  if (!doc) {
+    await ensureSettings(auth.db, auth.user._id);
+    doc = await auth.db.collection("settings").findOne({ ownerId: auth.user._id });
+    if (!doc) return errorResponse(404, "NOT_FOUND", "تنظیمات پیدا نشد.");
+  }
   return NextResponse.json({ ...(doc.payload as object), version: doc.version });
 }
 
@@ -14,9 +19,11 @@ export async function PUT(request: NextRequest) {
   const originError = checkOrigin(request);
   if (originError) return originError;
   const auth = await requireUser();
-  if (!auth) return errorResponse(401, "UNAUTHORIZED", "نشست شما معتبر نیست.");
-  const body = await request.json().catch(() => null);
-  const version = body?.version;
+  if (!auth) return unauthorized();
+  const json = await readJson(request);
+  if ("error" in json) return json.error;
+  const body = json.body as Record<string, unknown> | null;
+  const version = body?.version as number;
   const parsed = settingsSchema.safeParse(
     body && typeof body === "object"
       ? Object.fromEntries(Object.entries(body).filter(([key]) => key !== "version"))

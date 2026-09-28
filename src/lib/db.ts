@@ -1,12 +1,11 @@
 import { MongoClient, ObjectId, type Db } from "mongodb";
 import { defaultSettings, demoProperties } from "./defaults";
-import { hashPassword } from "./password";
 
 export interface UserDocument {
   _id: ObjectId;
-  username: string;
-  passwordHash: string;
+  phone: string;
   tokenVersion: number;
+  seededAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,54 +32,76 @@ export async function getDb(): Promise<Db> {
   return db;
 }
 
+/** Closes the shared client (used by tests and scripts). */
+export async function closeDb() {
+  const client = globalMongo.mongoClient;
+  globalMongo.mongoClient = undefined;
+  globalMongo.mongoInitialized = undefined;
+  if (client) await (await client).close();
+}
+
 async function initialize(db: Db) {
-  await Promise.all([
-    db.collection("users").createIndex({ username: 1 }, { unique: true }),
-    db.collection("properties").createIndex({ ownerId: 1, id: 1 }, { unique: true }),
-    db.collection("settings").createIndex({ ownerId: 1 }, { unique: true }),
-  ]);
-  if (await db.collection("users").countDocuments({}, { limit: 1 })) return;
-  const username = process.env.ADMIN_USERNAME?.trim();
-  const password = process.env.ADMIN_PASSWORD;
-  if (!username || !password) throw new Error("ADMIN_USERNAME and ADMIN_PASSWORD are required for first startup");
-  if (password.length < 12) throw new Error("ADMIN_PASSWORD must be at least 12 characters");
-  const now = new Date();
-  const userId = new ObjectId();
+  // Legacy username/password login index; phone OTP replaced it.
   await db
-    .collection<UserDocument>("users")
-    .insertOne({
-      _id: userId,
-      username,
-      passwordHash: await hashPassword(password),
-      tokenVersion: 0,
-      createdAt: now,
-      updatedAt: now,
-    });
+    .collection("users")
+    .dropIndex("username_1")
+    .catch(() => undefined);
   await Promise.all([
     db
-      .collection("settings")
-      .insertOne({
-        ownerId: userId,
+      .collection("users")
+      .createIndex({ phone: 1 }, { unique: true, partialFilterExpression: { phone: { $type: "string" } } }),
+    db.collection("properties").createIndex({ ownerId: 1, id: 1 }, { unique: true }),
+    db.collection("settings").createIndex({ ownerId: 1 }, { unique: true }),
+    db.collection("otp_codes").createIndex({ phone: 1 }, { unique: true }),
+    db.collection("otp_codes").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection("rate_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+  ]);
+}
+
+/** Creates the settings document for a user if it is missing. Safe to call repeatedly. */
+export async function ensureSettings(db: Db, ownerId: ObjectId) {
+  const now = new Date();
+  await db.collection("settings").updateOne(
+    { ownerId },
+    {
+      $setOnInsert: {
+        ownerId,
         schemaVersion: 1,
         version: 1,
         payload: defaultSettings,
         createdAt: now,
         updatedAt: now,
+      },
+    },
+    { upsert: true },
+  );
+}
+
+/** Gives a new user default settings and the demo properties. Idempotent. */
+export async function seedUserData(db: Db, ownerId: ObjectId) {
+  await ensureSettings(db, ownerId);
+  const now = new Date();
+  if (demoProperties.length)
+    await db.collection("properties").bulkWrite(
+      demoProperties.map((demo) => {
+        const payload = { ...demo, createdAt: now.toISOString() };
+        return {
+          updateOne: {
+            filter: { ownerId, id: payload.id },
+            update: {
+              $setOnInsert: {
+                ownerId,
+                id: payload.id,
+                schemaVersion: 1,
+                version: 1,
+                payload,
+                createdAt: now,
+                updatedAt: now,
+              },
+            },
+            upsert: true,
+          },
+        };
       }),
-    demoProperties.length
-      ? db
-          .collection("properties")
-          .insertMany(
-            demoProperties.map((payload) => ({
-              ownerId: userId,
-              id: payload.id,
-              schemaVersion: 1,
-              version: 1,
-              payload,
-              createdAt: new Date(payload.createdAt),
-              updatedAt: now,
-            })),
-          )
-      : Promise.resolve(),
-  ]);
+    );
 }

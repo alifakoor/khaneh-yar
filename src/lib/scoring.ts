@@ -22,6 +22,16 @@ function criterionValue(key: CriterionKey, p: Property, s: Settings): number | u
   return clamp((value / setting.target) * 100);
 }
 
+const numericKeys = ["area", "age", "rooms", "floor"] as const;
+type NumericKey = (typeof numericKeys)[number];
+const isNumericKey = (key: CriterionKey): key is NumericKey => (numericKeys as readonly string[]).includes(key);
+
+/**
+ * The value `hardMin` is compared against: the property's own measurement for numeric criteria
+ * (e.g. square metres for area), otherwise the 0-100 score.
+ */
+const hardMinValue = (key: CriterionKey, p: Property, score: number) => (isNumericKey(key) ? p[key] : score);
+
 export function scoreProperty(p: Property, s: Settings): ScoreResult {
   const cost = effectiveCost(p);
   const reasons: string[] = [];
@@ -32,7 +42,9 @@ export function scoreProperty(p: Property, s: Settings): ScoreResult {
   const parts = active.flatMap((c) => {
     const score = criterionValue(c.key, p, s);
     if (score === undefined) return [];
-    if (c.hardMin !== undefined && score < c.hardMin) reasons.push(`${c.label} پایین‌تر از حد قطعی است`);
+    const measured = hardMinValue(c.key, p, score);
+    if (c.hardMin !== undefined && measured !== undefined && measured < c.hardMin)
+      reasons.push(`${c.label} پایین‌تر از حد قطعی است`);
     if (c.required && score === 0) reasons.push(`${c.label} الزامی است`);
     return [{ key: c.key, label: c.label, score, weight: c.weight }];
   });

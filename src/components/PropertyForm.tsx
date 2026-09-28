@@ -3,7 +3,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { ArrowRight, Check, ExternalLink, Trash2 } from "lucide-react";
 import { Property, PropertyStatus, PropertyType, Rating } from "@/lib/types";
-import { ratingLabels, statusLabels } from "@/lib/format";
+import { isHttpUrl, ratingLabels, statusLabels } from "@/lib/format";
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 const blank = (): Property => ({
   id: crypto.randomUUID(),
@@ -117,8 +117,8 @@ export function PropertyForm({
                 value={p.listingUrl || ""}
                 onChange={(e) => set("listingUrl", e.target.value)}
               />
-              {p.listingUrl && (
-                <a className="btn-ghost px-3" href={p.listingUrl} target="_blank">
+              {p.listingUrl && isHttpUrl(p.listingUrl) && (
+                <a className="btn-ghost px-3" href={p.listingUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink size={18} />
                 </a>
               )}
